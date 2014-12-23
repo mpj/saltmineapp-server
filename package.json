@@ -14,5 +14,12 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/mpj/saltmineapp-server/issues"
+  },
+  "dependencies": {
+    "express": "~4.10.6",
+    "mongodb": "~1.4.26",
+    "mout": "~0.11.0",
+    "body-parser": "~1.10.0",
+    "randomstring": "~1.0.3"
   }
 }
