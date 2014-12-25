@@ -53,7 +53,7 @@ app.put('/domains', jsonParser, function(request, response) {
   })
 })
 
-app.get('/domains', jsonParser, function(request, response) {
+app.post('/domains', jsonParser, function(request, response) {
   if (!request.body || !mout.lang.isString(request.body.query)) {
     response.status(400).send("Bad Request");
     return;
@@ -78,8 +78,9 @@ app.get('/domains', jsonParser, function(request, response) {
       })
     })
   })
-
 })
+
+// TODO: Regen domain salt
 
 app.listen(app.get('port'), function() {
   console.log("Node app is running at localhost:" + app.get('port'))
