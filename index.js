@@ -24,6 +24,7 @@ function createSignature(body) {
   return hash.digest('base64');
 }
 app.put('/domains', jsonParser, function(request, response) {
+  response.header('Access-Control-Allow-Origin', '*'); // TODO: remove
   if (!request.body && mout.lang.isObject(request.body))
     return  response.status(400).send('Must send json body');
 
@@ -54,6 +55,7 @@ app.put('/domains', jsonParser, function(request, response) {
 })
 
 app.post('/domains', jsonParser, function(request, response) {
+  response.header('Access-Control-Allow-Origin', '*'); // TODO: remove
   if (!request.body || !mout.lang.isString(request.body.query)) {
     response.status(400).send("Bad Request");
     return;
