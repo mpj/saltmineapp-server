@@ -30,12 +30,6 @@ function hashString(str) {
   return hash.digest('base64');
 }
 
-function createSignature(body) {
-  if (!body.username) throw new Error('No username on body');
-  if (!body.masterPassword) throw new Error('No masterPassword on body');
-  var str = body.username+body.masterPassword+signatureSalt;
-  return hashString(str);
-}
 app.put('/domains', jsonParser, function(request, response) {
   response.header('Access-Control-Allow-Origin', '*'); // TODO: remove
   if (!request.body && mout.lang.isObject(request.body))
@@ -43,52 +37,60 @@ app.put('/domains', jsonParser, function(request, response) {
 
   var cleanBody = mout.object.filter(request.body, mout.lang.isString);
   var signature = createSignature(cleanBody);
-  MongoClient.connect(process.env.MONGOHQ_URL, function(err, db) {
-    var collection = db.collection('domains');
-    collection.ensureIndex( { signature: 1, domain: 1 }, { unique: true } , function() {
-      collection.findOne({
-        signature: signature,
-        domain: cleanBody.domainName
-      }, function(error, item) {
-        if(error) {
-          return response.status(500).send("Error:" + error.message);
-        }
-        if (!item) {
-          item = {
-            signature: signature,
-            domain: cleanBody.domainName,
-            salt: randomstring.generate(32)
-          }
-          collection.insert(item, function() {
-            response.status(201).send({
-              generatedPassword: hashString(signature+item.salt)
-            })
-          })
-        } else {
-          response.status(200).send({
-            generatedPassword: hashString(signature+item.salt)
-          })
-        }
-      })
-    })
   })
+
+app.post('/command', jsonParser, function(request, response) {
+  response.header('Access-Control-Allow-Origin', '*'); // TODO: remove
+  if (!request.body || request.body === {} || !request.body.command)
+    return response.status(400).send("Bad Request - Command body missing.");
+  try {
+    var command = parseCommandFromBody(request.body);
+  } catch(error) {
+    if (error.type === 'command-parsing') {
+      return response.status(400).send('Command parsing failed: '+ error.message);
+    } else {
+      throw error;
+    }
+  }
+  switch(command.command) {
+    case 'query-domains':
+      return handleQueryDomains(request, response);
+    case 'generate-password':
+      return handleGeneratePassword(request, response);
+  }
 })
 
-app.post('/domains', jsonParser, function(request, response) {
-  response.header('Access-Control-Allow-Origin', '*'); // TODO: remove
-  if (!request.body || !mout.lang.isString(request.body.query)) {
-    response.status(400).send("Bad Request");
-    return;
-  };
-  var cleanBody = mout.object.filter(request.body, mout.lang.isString);
-  if (cleanBody.query.length < 3) {
+function makeError(type, message) {
+  if (!type) throw new Error('Must provide type when creating errors');
+  var error = new Error(message || 'An ' + type + ' error occured');
+  error.type = type;
+  return error;
+}
+
+function parseCommandFromBody(body, allowedProperties) {
+  allowedProperties = (allowedProperties || []).concat(['command', 'username', 'masterPassword'])
+  var clean = mout.object.filter(body, function(value, name) {
+    return (mout.lang.isString(value) || mout.lang.isNumber(value)) &&
+      mout.array.contains(allowedProperties, name)
+  })
+  if (!clean.username)
+    throw makeError('command-parsing', 'username property missing');
+  if (!clean.masterPassword)
+    throw makeError('command-parsing', 'masterPassword property missing');
+  clean.signature = hashString(clean.username + clean.masterPassword + signatureSalt);
+  return clean;
+}
+
+function handleQueryDomains(request, response) {
+  var command = parseCommandFromBody(request.body, ['query']);
+  if (!command.query)
+    return response.status(400).send("Bad request - query parameter missing");
+  if (command.query.length < 3)
     return response.json([]);
-  }
-  var signature = createSignature(cleanBody);
   MongoClient.connect(process.env.MONGOHQ_URL, function(err, db) {
     var collection = db.collection('domains');
     collection.find({
-      signature: signature,
+      signature: command.signature,
       domain: new RegExp('^'+request.body.query+'.*')
     }, function(error, cursor) {
       cursor.toArray(function(error, domains) {
@@ -100,9 +102,43 @@ app.post('/domains', jsonParser, function(request, response) {
       })
     })
   })
-})
+}
 
-// TODO: Regen domain salt
+function handleGeneratePassword(request, response) {
+  var command = parseCommandFromBody(request.body, ['domainName']);
+
+  MongoClient.connect(process.env.MONGOHQ_URL, function(err, db) {
+    var collection = db.collection('domains');
+    collection.ensureIndex( { signature: 1, domain: 1 }, { unique: true } , function() {
+      collection.findOne({
+        signature: command.signature,
+        domain: command.domainName
+      }, function(error, item) {
+        if(error) {
+          return response.status(500).send("Error:" + error.message);
+        }
+        if (!item) {
+          item = {
+            signature: command.signature,
+            domain: command.domainName,
+            salt: randomstring.generate(32)
+          }
+          collection.insert(item, function() {
+            response.status(201).send({
+              generatedPassword: hashString(command.signature+item.salt)
+            })
+          })
+        } else {
+          response.status(200).send({
+            generatedPassword: hashString(command.signature+item.salt)
+          })
+        }
+      })
+    })
+  })
+}
+
+
 
 app.listen(app.get('port'), function() {
   console.log("Node app is running at localhost:" + app.get('port'))
