@@ -15,13 +15,26 @@ var mongodb = require('mongodb')
 app.set('port', (process.env.PORT || 5000))
 app.use(express.static(__dirname + '/public'))
 
+var allowCrossDomain = function(req, res, next) {
+    res.header('Access-Control-Allow-Origin', '*'); // FIXME: make proper config
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+
+    next();
+}
+app.use(allowCrossDomain);
+
+function hashString(str) {
+  var hash = crypto.createHash('sha1');
+  hash.update(str, 'utf8');
+  return hash.digest('base64');
+}
+
 function createSignature(body) {
   if (!body.username) throw new Error('No username on body');
   if (!body.masterPassword) throw new Error('No masterPassword on body');
   var str = body.username+body.masterPassword+signatureSalt;
-  var hash = crypto.createHash('sha1');
-  hash.update(str, 'utf8');
-  return hash.digest('base64');
+  return hashString(str);
 }
 app.put('/domains', jsonParser, function(request, response) {
   response.header('Access-Control-Allow-Origin', '*'); // TODO: remove
@@ -37,17 +50,24 @@ app.put('/domains', jsonParser, function(request, response) {
         signature: signature,
         domain: cleanBody.domainName
       }, function(error, item) {
-        if (!error && !item) {
-          collection.insert({
+        if(error) {
+          return response.status(500).send("Error:" + error.message);
+        }
+        if (!item) {
+          item = {
             signature: signature,
             domain: cleanBody.domainName,
             salt: randomstring.generate(32)
-          }, function() {})
-          response.status(201).send('OK');
-        } else if(!error && item) {
-          response.send('OK');
+          }
+          collection.status(201).insert(item, function() {
+            response.status.send({
+              generatedPassword: hashString(signature+item.salt)
+            })
+          })
         } else {
-          response.status(500).send("Error:" + error.message);
+          response.status(200).send({
+            generatedPassword: hashString(signature+item.salt)
+          })
         }
       })
     })
