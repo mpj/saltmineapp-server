@@ -59,8 +59,8 @@ app.put('/domains', jsonParser, function(request, response) {
             domain: cleanBody.domainName,
             salt: randomstring.generate(32)
           }
-          collection.status(201).insert(item, function() {
-            response.status.send({
+          collection.insert(item, function() {
+            response.status(201).send({
               generatedPassword: hashString(signature+item.salt)
             })
           })
