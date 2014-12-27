@@ -12,6 +12,22 @@ var signatureSalt = process.env.SIGNATURE_SALT || 'dnV5aMxmvCVqPCLdG2hw';
 var mongodb = require('mongodb')
 , MongoClient = mongodb.MongoClient;
 
+var cachedConnection = null;
+function ensureMongoConnection(callback) {
+  if (cachedConnection) {
+    return callback(null, cachedConnection);
+  }
+
+  MongoClient.connect(process.env.MONGOLAB_URI, function(error, connection) {
+    cachedConnection = connection;
+    connection.on('close', function() {
+      cachedConnection = null;
+    });
+    callback(error, connection);
+  })
+}
+
+
 app.set('port', (process.env.PORT || 5000))
 app.use(express.static(__dirname + '/public'))
 
@@ -87,7 +103,7 @@ function handleQueryDomains(request, response) {
     return response.status(400).send("Bad request - query parameter missing");
   if (command.query.length < 3)
     return response.json([]);
-  MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
+  ensureMongoConnection(function(err, db) {
     var collection = db.collection('domains');
     collection.find({
       signature: command.signature,
@@ -107,7 +123,7 @@ function handleQueryDomains(request, response) {
 function handleGeneratePassword(request, response) {
   var command = parseCommandFromBody(request.body, ['domainName']);
 
-  MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
+  ensureMongoConnection(function(err, db) {
     var collection = db.collection('domains');
     collection.ensureIndex( { signature: 1, domainName: 1 }, { unique: true } , function() {
       collection.findOne({
