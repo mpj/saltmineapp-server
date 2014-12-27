@@ -50,15 +50,6 @@ function hashString(str) {
   return hash.digest('base64');
 }
 
-app.put('/domains', jsonParser, function(request, response) {
-  response.header('Access-Control-Allow-Origin', allowOrigin); // TODO: remove
-  if (!request.body && mout.lang.isObject(request.body))
-    return  response.status(400).send('Must send json body');
-
-  var cleanBody = mout.object.filter(request.body, mout.lang.isString);
-  var signature = createSignature(cleanBody);
-  })
-
 app.post('/command', jsonParser, function(request, response) {
   if (!request.body || request.body === {} || !request.body.command)
     return response.status(400).send("Bad Request - Command body missing.");
