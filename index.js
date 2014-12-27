@@ -91,12 +91,12 @@ function handleQueryDomains(request, response) {
     var collection = db.collection('domains');
     collection.find({
       signature: command.signature,
-      domain: new RegExp('^'+request.body.query+'.*')
+      domainName: new RegExp('^'+request.body.query+'.*')
     }, function(error, cursor) {
       cursor.toArray(function(error, domains) {
         response.json(domains.map(function(domain){
           return {
-            domainName: domain.domain
+            domainName: domain.domainName
           }
         }));
       })
@@ -109,10 +109,10 @@ function handleGeneratePassword(request, response) {
 
   MongoClient.connect(process.env.MONGOHQ_URL, function(err, db) {
     var collection = db.collection('domains');
-    collection.ensureIndex( { signature: 1, domain: 1 }, { unique: true } , function() {
+    collection.ensureIndex( { signature: 1, domainName: 1 }, { unique: true } , function() {
       collection.findOne({
         signature: command.signature,
-        domain: command.domainName
+        domainName: command.domainName
       }, function(error, item) {
         if(error) {
           return response.status(500).send("Error:" + error.message);
@@ -120,7 +120,7 @@ function handleGeneratePassword(request, response) {
         if (!item) {
           item = {
             signature: command.signature,
-            domain: command.domainName,
+            domainName: command.domainName,
             salt: randomstring.generate(32)
           }
           collection.insert(item, function() {
