@@ -87,7 +87,7 @@ function handleQueryDomains(request, response) {
     return response.status(400).send("Bad request - query parameter missing");
   if (command.query.length < 3)
     return response.json([]);
-  MongoClient.connect(process.env.MONGOHQ_URL, function(err, db) {
+  MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
     var collection = db.collection('domains');
     collection.find({
       signature: command.signature,
@@ -107,7 +107,7 @@ function handleQueryDomains(request, response) {
 function handleGeneratePassword(request, response) {
   var command = parseCommandFromBody(request.body, ['domainName']);
 
-  MongoClient.connect(process.env.MONGOHQ_URL, function(err, db) {
+  MongoClient.connect(process.env.MONGOLAB_URI, function(err, db) {
     var collection = db.collection('domains');
     collection.ensureIndex( { signature: 1, domainName: 1 }, { unique: true } , function() {
       collection.findOne({
