@@ -9,6 +9,10 @@ var crypto = require('crypto')
 
 var signatureSalt = process.env.SIGNATURE_SALT || 'dnV5aMxmvCVqPCLdG2hw';
 
+var allowOrigin = process.env.DEVELOPMENT_MODE ? '*' : process.env.ALLOW_ORIGIN;
+if (!allowOrigin)
+  throw new Error('Must define either DEVELOPMENT_MODE or ALLOW_ORIGIN environment variable');
+
 var mongodb = require('mongodb')
 , MongoClient = mongodb.MongoClient;
 
@@ -32,7 +36,7 @@ app.set('port', (process.env.PORT || 5000))
 app.use(express.static(__dirname + '/public'))
 
 var allowCrossDomain = function(req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*'); // FIXME: make proper config
+    res.header('Access-Control-Allow-Origin', allowOrigin);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -47,7 +51,7 @@ function hashString(str) {
 }
 
 app.put('/domains', jsonParser, function(request, response) {
-  response.header('Access-Control-Allow-Origin', '*'); // TODO: remove
+  response.header('Access-Control-Allow-Origin', allowOrigin); // TODO: remove
   if (!request.body && mout.lang.isObject(request.body))
     return  response.status(400).send('Must send json body');
 
@@ -56,7 +60,6 @@ app.put('/domains', jsonParser, function(request, response) {
   })
 
 app.post('/command', jsonParser, function(request, response) {
-  response.header('Access-Control-Allow-Origin', '*'); // TODO: remove
   if (!request.body || request.body === {} || !request.body.command)
     return response.status(400).send("Bad Request - Command body missing.");
   try {
