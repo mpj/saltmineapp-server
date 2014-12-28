@@ -126,6 +126,9 @@ function handleGeneratePassword(request, response) {
         if(error) {
           return response.status(500).send("Error:" + error.message);
         }
+        var genPass = function(salt) {
+            return hashString(command.masterPassword+salt+signatureSalt).stringToReplace.replace(/[^\w\s]/gi, '').substring(0,16)
+        }
         if (!item) {
           item = {
             signature: command.signature,
@@ -134,12 +137,12 @@ function handleGeneratePassword(request, response) {
           }
           collection.insert(item, function() {
             response.status(201).send({
-              generatedPassword: hashString(command.masterPassword+item.salt+signatureSalt)
+              generatedPassword: genPass(item.salt)
             })
           })
         } else {
           response.status(200).send({
-            generatedPassword: hashString(command.masterPassword+item.salt+signatureSalt)
+            generatedPassword: genPass(item.salt)
           })
         }
       })
