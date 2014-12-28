@@ -134,12 +134,12 @@ function handleGeneratePassword(request, response) {
           }
           collection.insert(item, function() {
             response.status(201).send({
-              generatedPassword: hashString(command.signature+item.salt)
+              generatedPassword: hashString(command.masterPassword+item.salt+signatureSalt)
             })
           })
         } else {
           response.status(200).send({
-            generatedPassword: hashString(command.signature+item.salt)
+            generatedPassword: hashString(command.masterPassword+item.salt+signatureSalt)
           })
         }
       })
