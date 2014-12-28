@@ -44,7 +44,7 @@ var allowCrossDomain = function(req, res, next) {
 app.use(allowCrossDomain);
 
 function hashString(str) {
-  var hash = crypto.createHash('sha1');
+  var hash = crypto.createHash('sha512');
   hash.update(str, 'utf8');
   return hash.digest('base64');
 }
