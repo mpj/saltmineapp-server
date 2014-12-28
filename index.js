@@ -1,4 +1,3 @@
-
 var express = require('express')
 var app = express();
 var bodyParser = require('body-parser')
@@ -9,9 +8,9 @@ var crypto = require('crypto')
 
 var signatureSalt = process.env.SIGNATURE_SALT || 'dnV5aMxmvCVqPCLdG2hw';
 
-var allowOrigin = process.env.DEVELOPMENT_MODE ? '*' : process.env.ALLOW_ORIGIN;
+var allowOrigin = process.env.ALLOW_ORIGIN;
 if (!allowOrigin)
-  throw new Error('Must define either DEVELOPMENT_MODE or ALLOW_ORIGIN environment variable');
+  throw new Error('Must define ALLOW_ORIGIN environment variable');
 
 var mongodb = require('mongodb')
 , MongoClient = mongodb.MongoClient;
