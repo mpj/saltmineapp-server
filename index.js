@@ -127,7 +127,7 @@ function handleGeneratePassword(request, response) {
           return response.status(500).send("Error:" + error.message);
         }
         var genPass = function(salt) {
-            return hashString(command.masterPassword+salt+signatureSalt).stringToReplace.replace(/[^\w\s]/gi, '').substring(0,16)
+            return hashString(command.masterPassword+salt+signatureSalt).replace(/[^\w\s]/gi, '').substring(0,16)
         }
         if (!item) {
           item = {
